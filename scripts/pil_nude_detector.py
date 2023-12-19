@@ -102,7 +102,7 @@ class PilNudeDetector:
         Read configs from settings initialize or refresh self.thresholds, self.expand_horizontal, self.expand_vertical
         """
         enabled_labels = np.zeros(len(nudenet_labels_dict), dtype=np.bool_)
-        for i in nudenet_labels_index:
+        for i in ['Anus exposed', 'Female breast exposed', 'Female genitalia exposed', 'Male genitalia exposed']:
             enabled_labels[nudenet_labels_index[i][0]] = True
 
         self.thresholds = np.array([value[2][0] for key, value in nudenet_labels_index.items()], dtype=np.float32)
