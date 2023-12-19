@@ -17,12 +17,13 @@ class MyxNsfw(scripts.Script):
     def postprocess(self, p, processed, *args):
 
         print("MyxNsfw")
+        p.extra_generation_params["nsfw_check"] = "nsfw_check"
 
         if pil_nude_detector.thresholds is None:
             pil_nude_detector.refresh_label_configs()
 
-        # censor_mask = pil_nude_detector.get_censor_mask(processed.images[0], 0.5, 'Ellipse', 0.5, pil_nude_detector.thresholds, pil_nude_detector.expand_horizontal, pil_nude_detector.expand_vertical)
-        censor_mask = pil_nude_detector.get_censor_mask(processed.images[0], 0.5, 'Entire image', 0.5, pil_nude_detector.thresholds, pil_nude_detector.expand_horizontal, pil_nude_detector.expand_vertical)
+        censor_mask = pil_nude_detector.get_censor_mask(processed.images[0], 0.5, 'Ellipse', 0.5, pil_nude_detector.thresholds, pil_nude_detector.expand_horizontal, pil_nude_detector.expand_vertical)
+        # censor_mask = pil_nude_detector.get_censor_mask(processed.images[0], 0.5, 'Entire image', 0.5, pil_nude_detector.thresholds, pil_nude_detector.expand_horizontal, pil_nude_detector.expand_vertical)
         if censor_mask:
             scale_factor = sqrt((processed.images[0].size[0] ** 2 + processed.images[0].size[1] ** 2) / 524288)
 
