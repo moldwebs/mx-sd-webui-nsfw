@@ -1,4 +1,3 @@
-import scripts.settings
 from scripts.censor_image_filters import apply_filter
 from scripts.pil_nude_detector import pil_nude_detector
 from modules import scripts
