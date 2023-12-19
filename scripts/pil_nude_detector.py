@@ -1,7 +1,6 @@
 from onnxruntime import InferenceSession, get_available_providers
 from PIL import Image, ImageDraw
 from cv2.dnn import NMSBoxes
-from modules import shared
 from pathlib import Path
 from math import sqrt
 import numpy as np
@@ -29,7 +28,7 @@ nudenet_labels_dict = {
 
 nudenet_labels_index = {key.replace('_', ' '): (index, key, value) for index, (key, value) in enumerate(nudenet_labels_dict.items())}
 nudenet_labels_friendly_name = list(nudenet_labels_index)
-nudenet_labels_index = {key: nudenet_labels_index[key] for key in sorted(nudenet_labels_index)}
+# nudenet_labels_index = {key: nudenet_labels_index[key] for key in sorted(nudenet_labels_index)}
 
 
 def draw_ellipse(draw, left_expanded, top_expanded, right_expanded, down_expanded, *args, **kwargs):
@@ -85,7 +84,7 @@ class PilNudeDetector:
     def init_onnx(self):
         self.onnx_session = InferenceSession(
             str(Path(__file__).parent.parent.joinpath('nudenet', 'best.onnx')),
-            providers=[shared.opts.nudenet_nsfw_censor_onnx_provider],
+            providers=[default_onnx_provider],
         )
         model_inputs = self.onnx_session.get_inputs()
         input_shape = model_inputs[0].shape
@@ -96,19 +95,20 @@ class PilNudeDetector:
     def change_onnx_provider(self):
         if self.onnx_session is None:
             self.init_onnx()
-        self.onnx_session.set_providers([shared.opts.nudenet_nsfw_censor_onnx_provider])
+        self.onnx_session.set_providers([default_onnx_provider])
 
     def refresh_label_configs(self):
         """
         Read configs from settings initialize or refresh self.thresholds, self.expand_horizontal, self.expand_vertical
         """
         enabled_labels = np.zeros(len(nudenet_labels_dict), dtype=np.bool_)
-        for i in shared.opts.nudenet_nsfw_censor_selected_labels:
+        for i in nudenet_labels_index:
             enabled_labels[nudenet_labels_index[i][0]] = True
-        self.thresholds = np.array([getattr(shared.opts, f'nudenet_nsfw_censor_label_threshold_{label}', 1,) for label in nudenet_labels_dict], dtype=np.float32)
+
+        self.thresholds = np.array([value[2][0] for key, value in nudenet_labels_index.items()], dtype=np.float32)
         self.thresholds[~enabled_labels] = 1
-        self.expand_horizontal = np.array([getattr(shared.opts, f'nudenet_nsfw_censor_label_horizontal_{label}', 1) for label in nudenet_labels_dict], dtype=np.float32)
-        self.expand_vertical = np.array([getattr(shared.opts, f'nudenet_nsfw_censor_label_vertical_{label}', 1) for label in nudenet_labels_dict], dtype=np.float32)
+        self.expand_horizontal = np.array([value[2][1] for key, value in nudenet_labels_index.items()], dtype=np.float32)
+        self.expand_vertical = np.array([value[2][2] for key, value in nudenet_labels_index.items()], dtype=np.float32)
 
     def pre_process_pil(self, pil_image):
         """Resize and pad image with white background if not to scale for detection
@@ -195,10 +195,9 @@ class PilNudeDetector:
                     wh = wh_e[i]
                     draw_func(draw, *x1y1x2y2, *wh, rectangle_round_radius)
 
-                    if shared.opts.nudenet_nsfw_censor_verbose_detection:
-                        verbose += (
-                            f'\n{nudenet_labels_friendly_name[class_index[i]]}: score {scores[i]}, x1 {x1y1x2y2[0]} y1 {x1y1x2y2[1]}, w {wh[0].round()} h {wh[1].round()}, x2 {x1y1x2y2[2]} y2 {x1y1x2y2[3]}'
-                        )
+                    verbose += (
+                        f'\n{nudenet_labels_friendly_name[class_index[i]]}: score {scores[i]}, x1 {x1y1x2y2[0]} y1 {x1y1x2y2[1]}, w {wh[0].round()} h {wh[1].round()}, x2 {x1y1x2y2[2]} y2 {x1y1x2y2[3]}'
+                    )
 
                 if verbose:
                     print(verbose)
